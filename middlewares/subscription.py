@@ -11,7 +11,9 @@ JOIN_REQUEST_USERS = set()
 USER_CHECKED_SUB = set()
 
 def record_user_join_request(user_id: int, chat_id: str):
-    JOIN_REQUEST_USERS.add((user_id, str(chat_id)))
+    cid = str(chat_id)
+    JOIN_REQUEST_USERS.add((user_id, cid))
+    JOIN_REQUEST_USERS.add((user_id, cid.replace("-100", "")))
 
 def mark_user_checked(user_id: int):
     USER_CHECKED_SUB.add(user_id)
@@ -30,8 +32,10 @@ async def check_user_subscription(bot: Bot, user_id: int) -> tuple[bool, list[di
         chat_id = str(ch.get("chat_id", "")).strip()
 
         if chat_id and chat_id != "0":
+            cid = str(chat_id)
+            clean_cid = cid.replace("-100", "")
             # 1. Foydalanuvchi kanalga so'rov (Join Request) yuborgan bo'lsa
-            if (user_id, chat_id) in JOIN_REQUEST_USERS:
+            if (user_id, cid) in JOIN_REQUEST_USERS or (user_id, clean_cid) in JOIN_REQUEST_USERS:
                 continue
 
             # 2. Real Telegram API member statusini tekshirish
