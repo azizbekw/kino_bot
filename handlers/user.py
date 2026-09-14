@@ -23,15 +23,10 @@ async def on_chat_join_request(event: ChatJoinRequest, bot: Bot):
     user_id = event.from_user.id
     chat_id = str(event.chat.id)
 
-    # Foydalanuvchi so'rov yuborganini saqlaymiz
-    record_user_join_request(user_id, chat_id)
-    logger.info(f"Join request received: user {user_id} -> chat {chat_id}")
-
-    # So'rovni avtomatik tasdiqlash (auto-approve)
-    try:
-        await event.approve()
-    except Exception as e:
-        logger.warning(f"Auto-approve error for {user_id}: {e}")
+    # Foydalanuvchi so'rov yuborganini xotiraga va bazaga saqlaymiz
+    await record_user_join_request(user_id, chat_id)
+    logger.info(f"Join request recorded (manual approve mode): user {user_id} -> chat {chat_id}")
+    # Izoh: event.approve() chaqirilmaydi. Kanal egasi o'zi qo'lda tasdiqlaydi.
 
 async def send_movie_to_user(bot: Bot, chat_id: int, movie_data: tuple, code: str):
     _, from_chat_id, message_id = movie_data

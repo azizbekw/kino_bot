@@ -44,6 +44,15 @@ async def init_db():
             )
         """)
 
+        # Join Requests jadvali
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS join_requests (
+                user_id INTEGER,
+                chat_id TEXT,
+                PRIMARY KEY (user_id, chat_id)
+            )
+        """)
+
         # Default admindan qo'shish
         for admin_id in ADMIN_IDS:
             await db.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (admin_id,))
@@ -178,4 +187,18 @@ async def reset_channels_db():
                 (ch["name"], ch["url"], ch["chat_id"])
             )
         await db.commit()
+
+async def save_join_request_db(user_id: int, chat_id: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT OR IGNORE INTO join_requests (user_id, chat_id) VALUES (?, ?)",
+            (user_id, str(chat_id))
+        )
+        await db.commit()
+
+async def get_all_join_requests_db() -> list:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT user_id, chat_id FROM join_requests") as cursor:
+            return await cursor.fetchall()
+
 

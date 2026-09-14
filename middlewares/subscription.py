@@ -1,6 +1,6 @@
 import logging
 from aiogram import Bot
-from database import get_channels
+from database import get_channels, save_join_request_db, get_all_join_requests_db
 
 logger = logging.getLogger(__name__)
 
@@ -10,10 +10,22 @@ JOIN_REQUEST_USERS = set()
 # Tekshirish tugmasini bosgan foydalanuvchilar
 USER_CHECKED_SUB = set()
 
-def record_user_join_request(user_id: int, chat_id: str):
+async def record_user_join_request(user_id: int, chat_id: str):
     cid = str(chat_id)
     JOIN_REQUEST_USERS.add((user_id, cid))
     JOIN_REQUEST_USERS.add((user_id, cid.replace("-100", "")))
+    await save_join_request_db(user_id, cid)
+
+async def load_join_requests_from_db():
+    try:
+        rows = await get_all_join_requests_db()
+        for uid, cid in rows:
+            cid_str = str(cid)
+            JOIN_REQUEST_USERS.add((uid, cid_str))
+            JOIN_REQUEST_USERS.add((uid, cid_str.replace("-100", "")))
+        logger.info(f"Loaded {len(rows)} join requests from database.")
+    except Exception as e:
+        logger.error(f"Error loading join requests from database: {e}")
 
 def mark_user_checked(user_id: int):
     USER_CHECKED_SUB.add(user_id)

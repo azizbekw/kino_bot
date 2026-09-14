@@ -7,6 +7,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from config import BOT_TOKEN
 from database import init_db
+from middlewares.subscription import load_join_requests_from_db
 from handlers import admin, user
 
 logging.basicConfig(
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 async def main():
     logger.info("Initializing database...")
     await init_db()
+    await load_join_requests_from_db()
 
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
