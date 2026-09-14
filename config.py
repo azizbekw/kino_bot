@@ -19,9 +19,9 @@ elif raw_storage.startswith("-100") and raw_storage[4:].isdigit():
 else:
     STORAGE_CHANNEL_ID = raw_storage
 
-# Default majburiy obuna kanallari
+# Default majburiy obuna kanallari (Yangi 3 ta kanal)
 DEFAULT_CHANNELS = [
-    {"name": "1-kanal (Mohinur)", "url": "https://t.me/+OCtCGkSJnk00Nzcy", "chat_id": "-1002038097948"},
-    {"name": "2-kanal (.)", "url": "https://t.me/+8JahJgfENFEzNmYy", "chat_id": "-1002222128603"},
-    {"name": "3-kanal (Mohiy)", "url": "https://t.me/+8jMRKRfVA5g2NGM6", "chat_id": "-1002242671590"},
+    {"name": "Mohinur || SMM & AI", "url": "https://t.me/+WgTDdnQrL4tlNjMy", "chat_id": "-1002038097948"},
+    {"name": ".", "url": "https://t.me/+TEgHdBqEJHQxYWEy", "chat_id": "-1002222128603"},
+    {"name": "Nur Film", "url": "https://t.me/+g6Es1WkPgOxiYTFi", "chat_id": "-1002242671590"},
 ]

@@ -9,9 +9,10 @@ from config import STORAGE_CHANNEL_ID
 from database import (
     is_admin, add_movie, get_movie_by_code, delete_movie_by_code,
     get_all_movies, get_movies_count, get_user_count, get_all_user_ids,
-    get_channels, update_channel_chat_id, add_admin
+    get_channels, update_channel_chat_id, add_admin, add_channel_db,
+    delete_channel_db, reset_channels_db
 )
-from states.admin_states import AddMovie, DeleteMovie
+from states.admin_states import AddMovie, DeleteMovie, AddChannel
 from keyboards.admin_kb import (
     get_admin_main_kb, get_cancel_kb, get_confirm_movie_kb
 )
@@ -290,7 +291,7 @@ async def link_chat_id_callback(callback: CallbackQuery):
     else:
         await callback.answer("❌ Xatolik yuz berdi.", show_alert=True)
 
-# --- KANALLAR RO'YXATI (FAQAT KO'RISH) ---
+# --- KANALLAR RO'YXATI VA BOSHQARUV ---
 @router.message(F.text == "📢 Kanallar ro'yxati")
 @router.message(F.text == "📢 Kanallarni boshqarish")
 async def view_channels(message: Message):
@@ -299,13 +300,115 @@ async def view_channels(message: Message):
 
     channels = await get_channels()
     text = "<b>📢 Majburiy Obuna Kanallari Ro'yxati:</b>\n\n"
-    for ch in channels:
-        chat_id = str(ch.get('chat_id', '')).strip()
-        status_text = f"✅ Live Check (ID: <code>{chat_id}</code>)" if chat_id and chat_id != '0' else "⚠️ Chat ID biriktirilmagan"
-        text += f"• <b>{ch['name']}</b>: <a href='{ch['url']}'>Havola</a>\n  Holat: {status_text}\n\n"
+    buttons = []
+    
+    if not channels:
+        text += "⚠️ Hozirda hech qanday majburiy obuna kanali yo'q.\n\n"
+    else:
+        for idx, ch in enumerate(channels, 1):
+            chat_id = str(ch.get('chat_id', '')).strip()
+            status_text = f"✅ Live Check (ID: <code>{chat_id}</code>)" if chat_id and chat_id != '0' else "⚠️ Chat ID biriktirilmagan"
+            text += f"{idx}. <b>{ch['name']}</b>: <a href='{ch['url']}'>Havola</a>\n   Holat: {status_text}\n\n"
+            buttons.append([
+                InlineKeyboardButton(
+                    text=f"🗑 {ch['name']} kanalini o'chirish",
+                    callback_data=f"del_channel_{ch['id']}"
+                )
+            ])
+
+    buttons.append([
+        InlineKeyboardButton(
+            text="🔄 Defolt 3 ta kanalni qayta tiklash",
+            callback_data="reset_default_channels"
+        )
+    ])
 
     text += (
         "💡 <b>Kanal Chat ID sini avto-biriktirish uchun</b>:\n"
         "Shunchaki ushbu kanaldan 1 ta xabarni botga forvard (forward) qiling!"
     )
-    await message.answer(text, parse_mode="HTML", reply_markup=get_admin_main_kb())
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await message.answer(text, parse_mode="HTML", reply_markup=kb)
+
+@router.callback_query(F.data.startswith("del_channel_"))
+async def delete_channel_callback(callback: CallbackQuery):
+    if not await is_admin(callback.from_user.id):
+        return
+
+    channel_id = int(callback.data.split("_")[2])
+    success = await delete_channel_db(channel_id)
+    if success:
+        await callback.answer("✅ Kanal o'chirildi!", show_alert=True)
+    else:
+        await callback.answer("❌ Kanal topilmadi.", show_alert=True)
+
+    # Ro'yxatni yangilash
+    channels = await get_channels()
+    text = "<b>📢 Majburiy Obuna Kanallari Ro'yxati:</b>\n\n"
+    buttons = []
+    
+    if not channels:
+        text += "⚠️ Hozirda hech qanday majburiy obuna kanali yo'q.\n\n"
+    else:
+        for idx, ch in enumerate(channels, 1):
+            chat_id = str(ch.get('chat_id', '')).strip()
+            status_text = f"✅ Live Check (ID: <code>{chat_id}</code>)" if chat_id and chat_id != '0' else "⚠️ Chat ID biriktirilmagan"
+            text += f"{idx}. <b>{ch['name']}</b>: <a href='{ch['url']}'>Havola</a>\n   Holat: {status_text}\n\n"
+            buttons.append([
+                InlineKeyboardButton(
+                    text=f"🗑 {ch['name']} kanalini o'chirish",
+                    callback_data=f"del_channel_{ch['id']}"
+                )
+            ])
+
+    buttons.append([
+        InlineKeyboardButton(
+            text="🔄 Defolt 3 ta kanalni qayta tiklash",
+            callback_data="reset_default_channels"
+        )
+    ])
+
+    text += (
+        "💡 <b>Kanal Chat ID sini avto-biriktirish uchun</b>:\n"
+        "Shunchaki ushbu kanaldan 1 ta xabarni botga forvard (forward) qiling!"
+    )
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
+
+@router.callback_query(F.data == "reset_default_channels")
+async def reset_channels_callback(callback: CallbackQuery):
+    if not await is_admin(callback.from_user.id):
+        return
+
+    await reset_channels_db()
+    await callback.answer("✅ Kanallar defolt 3 ta yangi kanalga qayta tiklandi!", show_alert=True)
+
+    # Ro'yxatni yangilash
+    channels = await get_channels()
+    text = "<b>📢 Majburiy Obuna Kanallari Ro'yxati:</b>\n\n"
+    buttons = []
+    for idx, ch in enumerate(channels, 1):
+        chat_id = str(ch.get('chat_id', '')).strip()
+        status_text = f"✅ Live Check (ID: <code>{chat_id}</code>)" if chat_id and chat_id != '0' else "⚠️ Chat ID biriktirilmagan"
+        text += f"{idx}. <b>{ch['name']}</b>: <a href='{ch['url']}'>Havola</a>\n   Holat: {status_text}\n\n"
+        buttons.append([
+            InlineKeyboardButton(
+                text=f"🗑 {ch['name']} kanalini o'chirish",
+                callback_data=f"del_channel_{ch['id']}"
+            )
+        ])
+
+    buttons.append([
+        InlineKeyboardButton(
+            text="🔄 Defolt 3 ta kanalni qayta tiklash",
+            callback_data="reset_default_channels"
+        )
+    ])
+
+    text += (
+        "💡 <b>Kanal Chat ID sini avto-biriktirish uchun</b>:\n"
+        "Shunchaki ushbu kanaldan 1 ta xabarni botga forvard (forward) qiling!"
+    )
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
+

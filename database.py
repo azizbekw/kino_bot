@@ -48,15 +48,13 @@ async def init_db():
         for admin_id in ADMIN_IDS:
             await db.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (admin_id,))
 
-        # Standart kanallarni kiritish
-        cursor = await db.execute("SELECT COUNT(*) FROM channels")
-        count = (await cursor.fetchone())[0]
-        if count == 0:
-            for ch in DEFAULT_CHANNELS:
-                await db.execute(
-                    "INSERT INTO channels (name, url, chat_id) VALUES (?, ?, ?)",
-                    (ch["name"], ch["url"], ch["chat_id"])
-                )
+        # Standart kanallarni kiritish (eski kanallarni yangi 3 tasi bilan almashtirish)
+        await db.execute("DELETE FROM channels")
+        for ch in DEFAULT_CHANNELS:
+            await db.execute(
+                "INSERT INTO channels (name, url, chat_id) VALUES (?, ?, ?)",
+                (ch["name"], ch["url"], ch["chat_id"])
+            )
 
         await db.commit()
     logger.info("Database initialized successfully.")
@@ -170,3 +168,14 @@ async def update_channel_chat_id(channel_id: int, chat_id: str) -> bool:
         )
         await db.commit()
         return cursor.rowcount > 0
+
+async def reset_channels_db():
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM channels")
+        for ch in DEFAULT_CHANNELS:
+            await db.execute(
+                "INSERT INTO channels (name, url, chat_id) VALUES (?, ?, ?)",
+                (ch["name"], ch["url"], ch["chat_id"])
+            )
+        await db.commit()
+
